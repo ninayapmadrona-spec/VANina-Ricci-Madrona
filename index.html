@@ -190,6 +190,7 @@ input,select{height:48px}textarea{min-height:110px;padding:12px 14px;resize:vert
 <script>
 (function(){
   var KEY="f05e4f0f-cbb4-45ca-9f3b-193145b7fe3c";
+  var KEY2="acb8c79e-95cd-4236-96fe-175544a04c58"; // second Web3Forms key (Gmail copy of every request)
   var d=document.getElementById("dlg"),mode,pack,price;
   var $=function(i){return document.getElementById(i)};
   function open(m){
@@ -215,10 +216,12 @@ input,select{height:48px}textarea{min-height:110px;padding:12px 14px;resize:vert
     if(q&&!$("m").value.trim()){er.textContent="Please type your question.";er.hidden=false;return}
     er.hidden=true;var sb=$("sb"),label=sb.textContent;sb.disabled=true;sb.textContent="Sending...";
     var msg=q?"Question from the VA Nina page\n\n"+$("m").value.trim():"Hour pack request (VA Nina page)\nPack: "+pack+"\nPrice: $"+price+" USD, paid in full in advance (valid 60 days)\nPay in currency: "+$("c").value+"\nWebsite: "+($("w").value.trim()||"not given");
-    fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
-      body:JSON.stringify({access_key:KEY,subject:(q?"VA Nina question from ":"VA Nina hour pack: "+pack+" from ")+n,from_name:"VA Nina page",botcheck:"",name:n,email:e,message:msg})})
-    .then(function(r){return r.json()}).then(function(j){
-      if(!(j.success===true||j.success==="true"))throw new Error();
+    function send(k){return fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
+      body:JSON.stringify({access_key:k,subject:"[VA NINA] "+(q?"Question from ":"Hour pack: "+pack+" from ")+n,from_name:"VA Nina page",botcheck:"",name:n,email:e,message:msg})}).then(function(r){return r.json()})}
+    var sends=[send(KEY)];if(KEY2)sends.push(send(KEY2));
+    Promise.all(sends.map(function(p){return p.catch(function(){return {success:false}})})).then(function(rs){return rs.some(function(j){return j.success===true||j.success==="true"})?{success:true}:{success:false}})
+    .then(function(j){
+      if(!j.success)throw new Error();
       $("dm").textContent=q?"Your message is with me. I will reply within one business day.":"Your request is with me. I will send an invoice with bank transfer details within 1 business day. Work starts when payment arrives.";
       $("form-part").hidden=true;$("done").hidden=false;$("frm").reset();
     }).catch(function(){er.textContent="Could not send. Please try again in a moment.";er.hidden=false})
